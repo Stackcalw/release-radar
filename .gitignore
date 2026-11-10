@@ -1,0 +1,5 @@
+__pycache__/
+site/
+data/run.log
+data/*.tmp
+*.plist

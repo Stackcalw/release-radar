@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Radar</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --neg: #e34948; --good: #0ca30c; --crit: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --neg: #e66767;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 56px; }
+h1 { font-size: 20px; margin: 0; font-weight: 650; }
+h2 { font-size: 16px; margin: 36px 0 4px; font-weight: 650; }
+.sub { color: var(--ink2); margin: 0 0 14px; max-width: 78ch; }
+.meta { color: var(--ink2); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.banner { margin-top: 14px; }
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: center; margin-top: 16px; }
+.hero .big { font-size: 64px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }
+.hero .lead { font-size: 17px; margin: 6px 0 4px; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile .v { font-size: 22px; font-weight: 650; }
+.tile .k { color: var(--ink2); font-size: 13px; }
+@media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .hero .big { font-size: 52px; } }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
+.line-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.line-head .name { font-weight: 650; font-size: 16px; }
+.stat { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 2px; }
+.stat .v { font-size: 34px; font-weight: 650; line-height: 1.1; }
+.kv { display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: 13px; color: var(--ink2); margin-bottom: 8px; }
+.kv b { color: var(--ink); font-weight: 600; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg:focus-visible { outline: 2px solid var(--s1); outline-offset: 4px; border-radius: 4px; }
+.gl { stroke: var(--grid); stroke-width: 1; }
+.ax { stroke: var(--axis); stroke-width: 1; }
+.tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.lbl { fill: var(--ink2); font-size: 12px; }
+.dot { stroke: var(--surface); stroke-width: 2; }
+.ring { fill: var(--surface); stroke: var(--s1); stroke-width: 2; }
+.dotlabel { fill: var(--ink2); font-size: 11px; font-weight: 600; }
+.hair { stroke: var(--muted); stroke-width: 1; }
+.hit { fill: transparent; cursor: default; }
+.hit:focus-visible { outline: 2px solid var(--s1); }
+ul.why { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink2); }
+ul.why li { padding: 4px 0; border-top: 1px solid var(--grid); overflow-wrap: anywhere; }
+ul.why .m { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--ink2); margin: 0 0 10px; }
+.key { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
+.key.round { width: 9px; height: 9px; border-radius: 50%; }
+.key.hollow { width: 9px; height: 9px; border-radius: 50%; background: none; border: 2px solid var(--s1); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; color: var(--ink2); font-weight: 600; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.note { min-width: 260px; color: var(--ink2); }
+.src { color: var(--muted); font-size: 12px; }
+.tag { display: inline-block; border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; font-size: 12px; color: var(--ink2); white-space: nowrap; }
+.bar { position: relative; width: 110px; height: 8px; margin-top: 6px; background: linear-gradient(var(--axis), var(--axis)) center / 1px 100% no-repeat; }
+.bar i { position: absolute; top: 0; height: 8px; background: var(--s1); border-radius: 0 4px 4px 0; }
+.bar i.neg { background: var(--neg); border-radius: 4px 0 0 4px; }
+tr.dropped td, tr.dropped .src { color: var(--muted); }
+#tip { position: fixed; z-index: 10; pointer-events: none; display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.14); max-width: 280px; }
+#tip .t { color: var(--ink2); margin-bottom: 4px; }
+#tip .r { display: flex; align-items: center; gap: 6px; }
+#tip .r b { font-weight: 650; font-variant-numeric: tabular-nums; }
+#tip .r .n { color: var(--ink2); }
+details { margin-top: 10px; font-size: 13px; }
+summary { cursor: pointer; color: var(--ink2); }
+footer { margin-top: 36px; color: var(--ink2); font-size: 13px; }
+footer p { max-width: 86ch; margin: 0 0 8px; }
+.ok::before { content: "✓ "; color: var(--good); font-weight: 700; }
+.bad::before { content: "✕ "; color: var(--crit); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Release Radar</h1>
+    <div class="meta" id="updated"></div>
+  </header>
+  <div id="banner"></div>
+  <section class="hero card" id="hero"></section>
+
+  <h2>By model line</h2>
+  <p class="sub">Each curve is the chance that line's next model has shipped by that date. Hover or use the arrow keys for any day.</p>
+  <div class="legend" id="line-legend"></div>
+  <section class="grid" id="lines"></section>
+
+  <h2>Signals and weights</h2>
+  <p class="sub" id="signals-sub"></p>
+  <section class="card scroll"><table id="signals"></table></section>
+
+  <h2>How the 30-day odds have moved</h2>
+  <section class="card" id="history"></section>
+
+  <h2>Release rhythm</h2>
+  <p class="sub">Every launch since Claude 3. The spacing along each row is the clock the model runs on.</p>
+  <section class="card" id="rhythm"></section>
+
+  <footer id="method"></footer>
+</main>
+<div id="tip" role="status"></div>
+<script>const DATA = /*DATA*/null;</script>
+<script>
+"use strict";
+const D = DATA, DAY = 864e5;
+const COLOR = {opus: "var(--s1)", sonnet: "var(--s2)", haiku: "var(--s3)", fable: "var(--s4)"}; // colour follows the line, never its rank
+const ORDER = ["opus", "sonnet", "haiku", "fable"];
+const NS = "http://www.w3.org/2000/svg";
+
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+  }
+  for (const kid of kids) if (kid != null && kid !== false) e.append(kid);
+  return e;
+}
+function sv(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+}
+const date = iso => new Date(iso + "T00:00:00Z");
+const today = date(D.today);
+const ahead = k => new Date(today.getTime() + k * DAY);
+const fmt = d => d.toLocaleDateString("en-GB", Object.assign({day: "numeric", month: "short", timeZone: "UTC"}, d.getUTCFullYear() !== today.getUTCFullYear() ? {year: "numeric"} : {}));
+const when = iso => iso ? fmt(date(iso)) : "over a year out";
+const pct = p => p > 0.995 ? ">99%" : p < 0.005 ? "<1%" : Math.round(p * 100) + "%";
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// One shared tooltip. Everything is set with textContent: headlines come from outside feeds.
+const tipEl = document.getElementById("tip");
+function tip(content, x, y) {
+  if (!content) { tipEl.style.display = "none"; return; }
+  tipEl.replaceChildren(el("div", {class: "t", text: content.title}));
+  for (const r of content.rows) {
+    const key = el("span", {class: "key" + (r.round ? " round" : "")});
+    key.style.background = r.color || "none";
+    key.style.marginRight = "0";
+    tipEl.append(el("div", {class: "r"}, r.color ? key : null, el("b", {text: r.value}), el("span", {class: "n", text: r.name})));
+  }
+  tipEl.style.display = "block";
+  const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  tipEl.style.left = clamp(x + 14, 8, innerWidth - w - 8) + "px";
+  tipEl.style.top = (y + 16 + h > innerHeight ? y - h - 12 : y + 16) + "px";
+}
+
+// Line chart on a 0 to 100% axis with a crosshair that reads every series at once.
+function lineChart(host, o) {
+  const W = o.width || 560, H = o.height || 180, m = {l: 36, r: o.endLabels ? 74 : 12, t: 12, b: 24};
+  const x = i => m.l + (W - m.l - m.r) * (o.n > 1 ? i / (o.n - 1) : 0.5);
+  const y = v => m.t + (H - m.t - m.b) * (1 - v);
+  const root = sv("svg", {viewBox: "0 0 " + W + " " + H, role: "img", tabindex: "0", "aria-label": o.label});
+  for (const v of [0, 0.5, 1]) {
+    root.append(sv("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: v ? "gl" : "ax"}));
+    root.append(sv("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end", class: "tick"}, Math.round(v * 100) + "%"));
+  }
+  for (const t of o.ticks) root.append(sv("text", {x: x(t.i), y: H - 6, "text-anchor": "middle", class: "tick"}, t.label));
+  for (const s of o.series) {
+    const d = s.values.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join("");
+    root.append(sv("path", {d, fill: "none", stroke: s.color, "stroke-width": s.width || 2, "stroke-linejoin": "round", "stroke-linecap": "round"}));
+  }
+  if (o.endLabels) {  // label line ends only where they have room; the legend and table carry the rest
+    let lastY = -99;
+    for (const s of o.series.slice().sort((a, b) => b.values[o.n - 1] - a.values[o.n - 1])) {
+      const yy = y(s.values[o.n - 1]);
+      root.append(sv("circle", {cx: x(o.n - 1), cy: yy, r: 4, fill: s.color, class: "dot"}));
+      if (yy - lastY >= 13) { root.append(sv("text", {x: x(o.n - 1) + 9, y: yy + 4, class: "lbl"}, s.short || s.name)); lastY = yy; }
+    }
+  }
+  for (const d of o.dots || []) {  // label sits on the empty side of a rising curve: up-left if the dot is on or above it, down-right if below
+    const above = d.above && x(d.i) > m.l + 40;
+    root.append(sv("circle", {cx: x(d.i), cy: y(d.v), r: 5, fill: "var(--s2)", class: "dot"}));
+    root.append(sv("text", {x: x(d.i) + (above ? -8 : 8), y: y(d.v) + (above ? -7 : 14), "text-anchor": above ? "end" : "start", class: "dotlabel"}, d.label));
+  }
+  const hair = sv("line", {y1: m.t, y2: H - m.b, class: "hair", visibility: "hidden"});
+  root.append(hair);
+  let cur = -1;
+  const show = (i, cx, cy) => {
+    cur = clamp(i, 0, o.n - 1);
+    hair.setAttribute("x1", x(cur)); hair.setAttribute("x2", x(cur)); hair.setAttribute("visibility", "visible");
+    tip(o.read(cur), cx, cy);
+  };
+  const hide = () => { hair.setAttribute("visibility", "hidden"); tip(null); };
+  const box = () => root.getBoundingClientRect();
+  root.addEventListener("pointermove", e => { const r = box(); show(Math.round(((e.clientX - r.left) / r.width * W - m.l) / (W - m.l - m.r) * (o.n - 1)), e.clientX, e.clientY); });
+  root.addEventListener("pointerleave", hide);
+  root.addEventListener("blur", hide);
+  const atIndex = i => { const r = box(); show(i, r.left + x(clamp(i, 0, o.n - 1)) / W * r.width, r.top + 24); };
+  root.addEventListener("focus", () => atIndex(cur < 0 ? 0 : cur));
+  root.addEventListener("keydown", e => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (step) { e.preventDefault(); atIndex(cur + step * (e.shiftKey ? 7 : 1)); }
+  });
+  host.append(root);
+}
+
+function legendItem(color, label, cls) {
+  const key = el("span", {class: "key " + (cls || "")});
+  if (cls !== "hollow") key.style.background = color;
+  return el("span", {}, key, label);
+}
+
+// ---- header and hero
+document.getElementById("updated").textContent = "Updated " + new Date(D.generated).toLocaleString("en-GB", {dateStyle: "medium", timeStyle: "short"}) + ". Refreshes every morning.";
+if (D.new_releases.length) document.getElementById("banner").append(el("div", {class: "card banner", text: "Detected today: " + D.new_releases.join(", ") + ". That line's clock has been reset."}));
+const first = D.lines[0];  // lines arrive sorted by 30-day odds
+document.getElementById("hero").append(
+  el("div", {},
+    el("div", {class: "big", text: pct(D.any.p[30])}),
+    el("div", {class: "lead", text: "chance Anthropic ships a new Claude model in the next 30 days"}),
+    el("div", {class: "meta", text: "Most likely first: " + first.label + ", at " + pct(first.p[30]) + " in 30 days."})),
+  el("div", {class: "tiles"},
+    el("div", {class: "tile"}, el("div", {class: "v", text: pct(D.any.p[7])}), el("div", {class: "k", text: "next 7 days"})),
+    el("div", {class: "tile"}, el("div", {class: "v", text: pct(D.any.p[90])}), el("div", {class: "k", text: "next 90 days"})),
+    el("div", {class: "tile"}, el("div", {class: "v", text: when(D.any.median)}), el("div", {class: "k", text: "even odds by"}))));
+
+// ---- one card per line
+const N = D.any.curve.length;
+const months = [];
+for (let k = 1; k < N; k++) {
+  const d = ahead(k);
+  if (d.getUTCDate() === 1) months.push({i: k, label: d.toLocaleDateString("en-GB", Object.assign({month: "short", timeZone: "UTC"}, d.getUTCMonth() === 0 ? {year: "numeric"} : {}))});
+}
+document.getElementById("line-legend").append(
+  legendItem("var(--s1)", "Forecast"), legendItem("var(--muted)", "Model alone, before the market blend"), legendItem("var(--s2)", "Polymarket price", "round"));
+for (const l of D.lines) {
+  const blended = l.markets.length > 0;
+  const dots = l.markets.map(mk => ({i: Math.round((date(mk.date) - today) / DAY), v: mk.p, label: pct(mk.p)})).filter(d => d.i < N);
+  for (const d of dots) d.above = d.v >= l.curve[d.i];
+  const card = el("article", {class: "card"},
+    el("div", {class: "line-head"},
+      el("span", {class: "name", text: l.label}),
+      el("span", {class: "meta", text: l.latest + " shipped " + (l.days_since === 0 ? "today" : l.days_since === 1 ? "1 day ago" : l.days_since + " days ago") + ". Usual gap " + Math.round(l.usual_gap) + " days."})),
+    el("div", {class: "stat"}, el("span", {class: "v", text: pct(l.p[30])}), el("span", {class: "meta", text: "in the next 30 days"})),
+    el("div", {class: "kv"},
+      el("span", {}, "7 days ", el("b", {text: pct(l.p[7])})),
+      el("span", {}, "90 days ", el("b", {text: pct(l.p[90])})),
+      el("span", {}, "even odds by ", el("b", {text: when(l.median)})),
+      el("span", {}, "90% by ", el("b", {text: when(l.hi)}))));
+  lineChart(card, {
+    n: N, ticks: months, dots, label: l.label + ": chance the next model has shipped, by date",
+    series: (blended ? [{name: "model alone", color: "var(--muted)", values: l.curve_model, width: 1.5}] : []).concat([{name: "shipped by then", color: "var(--s1)", values: l.curve}]),
+    read: i => ({
+      title: fmt(ahead(i)) + (i ? ", in " + i + (i > 1 ? " days" : " day") : ", today"),
+      rows: [{color: "var(--s1)", value: pct(l.curve[i]), name: "shipped by then"}]
+        .concat(blended ? [{color: "var(--muted)", value: pct(l.curve_model[i]), name: "model alone"}] : [])
+        .concat(dots.filter(d => d.i === i).map(d => ({color: "var(--s2)", round: true, value: d.label, name: "Polymarket price"}))),
+    }),
+  });
+  const why = el("ul", {class: "why"});
+  for (const w of l.why) why.append(el("li", {}, w.text, w.mult != null ? el("span", {class: "m", text: "  ×" + w.mult}) : null));
+  if (!l.why.length) why.append(el("li", {text: "No signal is on. This is the clock alone."}));
+  card.append(why);
+  document.getElementById("lines").append(card);
+}
+
+// ---- signal table
+document.getElementById("signals-sub").textContent = "A weight multiplies the daily odds of a launch while its signal is on. Fitted weights come from a regression on "
+  + D.fit.rows.toLocaleString("en-GB") + " line-days and " + D.fit.events + " launches since March 2024, and ± is one standard error. A prior is a weight set by hand, used where the signal has never fired ahead of a launch so there is nothing to fit. Rows 1 to 10 are the first list, rechecked; 11 to 20 are new.";
+const KIND = {fit: "fitted", prior: "prior", blend: "blend", dropped: "dropped"};
+const tbl = document.getElementById("signals");
+tbl.append(el("thead", {}, el("tr", {}, ...["#", "Signal", "Type", "Weight", "On now", "What the check found"].map(h => el("th", {text: h})))));
+const body = el("tbody");
+D.signals.forEach((s, n) => {
+  const weight = el("td", {class: "num"});
+  if (s.kind === "dropped") weight.textContent = "0";
+  else if (s.kind === "blend") weight.textContent = "up to 50%";
+  else {
+    const mult = Math.exp(s.beta);
+    weight.append(
+      el("div", {text: s.id === "clock" ? "×" + Math.pow(2, s.beta).toFixed(1) + " per doubling" : "×" + (mult >= 10 ? Math.round(mult) : mult.toFixed(2))}),
+      el("div", {class: "src", text: "β " + (s.beta >= 0 ? "+" : "") + s.beta.toFixed(2) + (s.se != null ? " ± " + s.se.toFixed(2) : ", set by hand")}));
+    const fill = el("i", {class: s.beta < 0 ? "neg" : ""});
+    fill.style.width = Math.min(Math.abs(s.beta) / 3.5, 1) * 50 + "%";
+    fill.style[s.beta < 0 ? "right" : "left"] = "50%";
+    weight.append(el("div", {class: "bar", title: "log-odds weight, zero at the centre"}, fill));
+  }
+  body.append(el("tr", {class: s.kind === "dropped" ? "dropped" : ""},
+    el("td", {class: "num", text: String(n + 1)}),
+    el("td", {}, el("div", {text: s.name}), el("div", {class: "src", text: s.source})),
+    el("td", {}, el("span", {class: "tag", text: KIND[s.kind]})),
+    weight,
+    el("td", {text: s.kind === "dropped" ? "not used" : s.id === "clock" ? "always" : s.on.length ? s.on.join(", ") : "no"}),
+    el("td", {class: "note", text: s.note})));
+});
+tbl.append(body);
+
+// ---- history of the 30-day number
+const hist = D.history, histHost = document.getElementById("history");
+const keys = ORDER.filter(k => hist.length && k in hist[hist.length - 1].p30);
+if (hist.length < 2) {
+  histHost.append(el("p", {class: "meta", text: "Logging started " + fmt(date(hist[0].date)) + " with one point per day. The chart appears after the second daily run."}));
+} else {
+  const series = keys.map(k => ({name: D.labels[k] || k, short: (D.labels[k] || k).split(" ")[0], color: COLOR[k] || "var(--muted)", values: hist.map(h => h.p30[k] == null ? 0 : h.p30[k])}))
+    .concat([{name: "Any line", short: "Any", color: "var(--ink)", values: hist.map(h => h.p30.any)}]);
+  const leg = el("div", {class: "legend"});
+  for (const s of series) leg.append(legendItem(s.color, s.name));
+  histHost.append(leg);
+  const last = hist.length - 1;
+  lineChart(histHost, {
+    n: hist.length, series, endLabels: true, width: 1000, height: 260, label: "Chance of a launch within 30 days, by forecast date",
+    ticks: [0, Math.round(last / 2), last].filter((v, i, a) => a.indexOf(v) === i).map(i => ({i, label: fmt(date(hist[i].date))})),
+    read: i => ({title: "Forecast made " + fmt(date(hist[i].date)), rows: series.map(s => ({color: s.color, value: pct(s.values[i]), name: s.name}))}),
+  });
+}
+const htable = el("table", {}, el("thead", {}, el("tr", {}, el("th", {text: "Forecast date"}), ...keys.map(k => el("th", {class: "num", text: D.labels[k] || k})), el("th", {class: "num", text: "Any line"}))));
+const hbody = el("tbody");
+for (const h of hist.slice().reverse()) hbody.append(el("tr", {}, el("td", {text: fmt(date(h.date))}), ...keys.map(k => el("td", {class: "num", text: h.p30[k] == null ? "" : pct(h.p30[k])})), el("td", {class: "num", text: pct(h.p30.any)})));
+htable.append(hbody);
+histHost.append(el("details", {}, el("summary", {text: "Show as a table"}), el("div", {class: "scroll"}, htable)));
+
+// ---- release rhythm: one row per line, a dot per launch, a ring at the even-odds date
+(function rhythm() {
+  const host = document.getElementById("rhythm");
+  const rows = ORDER.filter(k => D.releases.some(r => r.line === k));
+  const W = 1000, rowH = 38, m = {l: 118, r: 20, t: 8, b: 26}, H = m.t + m.b + rowH * rows.length;
+  const t0 = date("2024-02-01").getTime(), t1 = today.getTime() + 240 * DAY;
+  const x = t => m.l + (W - m.l - m.r) * (t - t0) / (t1 - t0);
+  const root = sv("svg", {viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Launch dates for each Claude line since March 2024"});
+  for (let yr = 2025; date(yr + "-01-01").getTime() < t1; yr++) {
+    const xx = x(date(yr + "-01-01").getTime());
+    root.append(sv("line", {x1: xx, x2: xx, y1: m.t, y2: H - m.b, class: "gl"}), sv("text", {x: xx, y: H - 8, "text-anchor": "middle", class: "tick"}, String(yr)));
+  }
+  const xt = x(today.getTime());
+  root.append(sv("line", {x1: xt, x2: xt, y1: m.t, y2: H - m.b, class: "ax"}), sv("text", {x: xt, y: H - 8, "text-anchor": "middle", class: "tick"}, "today"));
+  rows.forEach((k, r) => {
+    const cy = m.t + rowH * (r + 0.5);
+    root.append(sv("text", {x: 0, y: cy + 4, class: "lbl"}, D.labels[k] || k));
+    const mine = D.releases.filter(rel => rel.line === k);
+    mine.forEach((rel, j) => {
+      const cx = x(date(rel.date).getTime());
+      root.append(sv("circle", {cx, cy, r: 5, fill: "var(--s1)", class: "dot"}));
+      const gap = j ? Math.round((date(rel.date) - date(mine[j - 1].date)) / DAY) + " days after the one before" : "first in this line";
+      addHit(root, cx, cy, {title: fmt(date(rel.date)) + (date(rel.date).getUTCFullYear() === today.getUTCFullYear() ? " " + today.getUTCFullYear() : ""), rows: [{value: rel.name, name: ""}, {value: "", name: gap}]});
+    });
+    const line = D.lines.find(l => l.key === k);
+    if (line && line.median) {
+      const cx = x(date(line.median).getTime());
+      if (cx <= W - m.r) {
+        root.append(sv("circle", {cx, cy, r: 5, class: "ring"}));
+        addHit(root, cx, cy, {title: when(line.median), rows: [{value: "Even odds", name: "the next " + line.label + " has shipped by this date"}]});
+      }
+    }
+  });
+  function addHit(svgRoot, cx, cy, content) {  // 24px target, also reachable by keyboard
+    const hit = sv("circle", {cx, cy, r: 12, class: "hit", tabindex: "0"});
+    const open = () => { const b = hit.getBoundingClientRect(); tip(content, b.left + b.width / 2, b.bottom - 8); };
+    hit.addEventListener("pointerenter", open); hit.addEventListener("focus", open);
+    hit.addEventListener("pointerleave", () => tip(null)); hit.addEventListener("blur", () => tip(null));
+    svgRoot.append(hit);
+  }
+  host.append(el("div", {class: "legend"}, legendItem("var(--s1)", "Shipped", "round"), legendItem("", "Forecast: even odds by this date", "hollow")), el("div", {class: "scroll"}, root));
+  root.style.minWidth = "640px";
+  const rtable = el("table", {}, el("thead", {}, el("tr", {}, ...["Date", "Line", "Model"].map(h => el("th", {text: h})))));
+  const rbody = el("tbody");
+  for (const rel of D.releases.slice().reverse()) rbody.append(el("tr", {}, el("td", {class: "num", text: fmt(date(rel.date)) + " " + date(rel.date).getUTCFullYear()}), el("td", {text: D.labels[rel.line] || rel.line}), el("td", {text: rel.name})));
+  rtable.append(rbody);
+  host.append(el("details", {}, el("summary", {text: "Show as a table"}), el("div", {class: "scroll"}, rtable)));
+})();
+
+// ---- method, limits, feed health
+(function method() {
+  const f = document.getElementById("method"), bt = D.fit.backtest || {};
+  f.append(el("h2", {text: "Method and limits"}));
+  f.append(el("p", {text: "The model has one row per model line per day since March 2024. A logistic regression gives each day a launch probability from the clock and the signals above, and chaining the days gives each curve. Older days count less (half-life " + D.fit.half_life + " days) because the cadence keeps speeding up. Mythos ships on the same day as Fable, so they are one line. A brand-new family name cannot be predicted."}));
+  f.append(el("p", {text: "With " + D.fit.events + " launches to learn from, most fitted weights are uncertain and several cannot be told apart from zero."
+    + (bt.n ? " In a walk-forward test (refit on the 1st of each month from July 2025, forecast 30 days ahead, " + bt.n + " forecasts) the model scored a Brier of " + bt.brier.toFixed(3) + " against " + bt.brier_naive.toFixed(3) + " for a constant-rate forecast; lower is better. The half-life was chosen on that same test, so the true edge is probably smaller." : "")}));
+  const names = Object.keys(D.sources), bad = names.filter(n => D.sources[n] !== "ok");
+  f.append(el("p", {class: bad.length ? "bad" : "ok", text: (names.length - bad.length) + " of " + names.length + " feeds fresh on this run." + (bad.length ? " Not fresh: " + bad.map(n => n + " (" + D.sources[n] + ")").join("; ") + ". A feed that fails falls back to its last good copy for three days, then its signal switches off." : "")}));
+  f.append(el("p", {text: "This is an independent project and is not affiliated with Anthropic."}));
+})();
+</script>
+</body>
+</html>
